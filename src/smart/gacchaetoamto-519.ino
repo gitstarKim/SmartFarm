@@ -13,11 +13,15 @@ SHT3xSensor sht3xSensor(0x44);
 // 토양 수분 센서 객체 생성: 핀 A0, 공기 중 센서 값 520, 물 속 센서 값 260
 SoilMoistureSensor soilSensor(A0, 520, 260);
 
+void softwareReset() {
+  NVIC_SystemReset(); // Arduino UNO R4 Wifi 모델 시스템 재시작 명령어
+}
+
 // pH 센서 설정
-#define SensorPin A2          // pH meter Analog output to Arduino Analog Input A2
-#define Offset 0.00           // Deviation compensate
-#define ArrayLength  40       // Times of collection
-int pHArray[ArrayLength];     // Store the average value of the sensor feedback
+#define SensorPin A2          // pH센서 핀 A2
+#define Offset 0.00           // 값 초기화
+#define ArrayLength  40       // 센서가 읽는 시간
+int pHArray[ArrayLength];     // 평균값
 int pHArrayIndex = 0;
 
 void setup() {
@@ -51,20 +55,10 @@ void loop() {
         // pH 센서 값 읽기
         for (int i = 0; i < ArrayLength; i++) {
             pHArray[i] = analogRead(SensorPin);
-            delay(20); // 각 측정 간의 짧은 지연
+            delay(100); // 각 측정 간의 짧은 지연
         }
         voltage = averageArray(pHArray, ArrayLength) * 5.0 / 1024.0;
         pHValue = 3.5 * voltage + Offset;
-
-        // 데이터 출력
-        Serial.print("Temperature: ");
-        Serial.print(temperature, 1);
-        Serial.print(" *C\tHumidity: ");
-        Serial.print(humidity, 1);
-        Serial.print(" %RH\tDew Point: ");
-        Serial.print(dewPoint, 1);
-        Serial.print(" *C\tpH value: ");
-        Serial.println(pHValue, 2);
 
         // LCD에 출력
         lcd.clear();
@@ -86,13 +80,12 @@ void loop() {
         String data = String(temperature, 1) + "," + String(humidity, 1) + "," + String(dewPoint, 1) + "," + soilStatus + "," + String(pHValue, 2);
         Serial.println(data);
     } else {
-        Serial.println("SHT3x read error");
-        lcd.clear();
-        lcd.setCursor(0, 0);
-        lcd.print("SHT3x Error");
+        Serial.println("센서값 불러오기 실패.. 재시작 중..");
+        delay(5000);
+        softwareReset();
     }
 
-    delay(1000); // 1초마다 측정 반복
+    delay(3000); // 3초마다 측정 반복
 }
 
 // 배열의 평균 계산 함수
